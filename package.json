@@ -23,9 +23,11 @@
   },
   "homepage": "https://github.com/I-Yanis-I/museum-api#readme",
   "dependencies": {
+    "@prisma/client": "^5.19.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "prisma": "^5.19.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
