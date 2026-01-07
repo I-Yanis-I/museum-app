@@ -25,19 +25,20 @@
   "homepage": "https://github.com/I-Yanis-I/museum-api#readme",
   "dependencies": {
     "@prisma/client": "^5.19.1",
-    "next": "16.1.1",
-    "prisma": "^5.19.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "next": "^14.2.16",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@eslint/eslintrc": "^3",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.1",
-    "tailwindcss": "^4",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "^14.2.16",
+    "postcss": "^8",
+    "prisma": "^5.19.1",
+    "tailwindcss": "^3.4.0",
     "typescript": "^5"
   }
 }
