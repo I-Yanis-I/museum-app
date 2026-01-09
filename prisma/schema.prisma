@@ -7,8 +7,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Test {
-  id        Int      @id @default(autoincrement())
+model Artist {
+  id        BigInt    @id @default(autoincrement())
   name      String
-  createdAt DateTime @default(now())
+  imageUrl  String?   
+  birthYear Int
+  deathYear Int?      
+  biography String?   
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relation: an artist can have multiple artworks
+  artworks  Artwork[]
+}
+
+model Collection {
+  id          BigInt    @id @default(autoincrement())
+  title       String
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relation: a collection can contain multiple artworks
+  artworks    Artwork[]
+}
+
+model Artwork {
+  id          BigInt    @id @default(autoincrement())
+  title       String
+  description String?   
+  imageUrl    String
+  creationYear Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Foreign keys
+  artistId     BigInt
+  collectionId BigInt
+
+  // Relations
+  artist       Artist      @relation(fields: [artistId], references: [id])
+  collection   Collection  @relation(fields: [collectionId], references: [id])
+  exhibitions  ExhibitionArtwork[]
+}
+
+model Exhibition {
+  id          BigInt    @id @default(autoincrement())
+  title       String
+  description String
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Many-to-many relation with Artwork via the join table
+  artworks    ExhibitionArtwork[]
+}
+
+model ExhibitionArtwork {
+  id           BigInt @id @default(autoincrement())
+  exhibitionId BigInt
+  artworkId    BigInt
+
+  // Relations to parent tables
+  exhibition   Exhibition @relation(fields: [exhibitionId], references: [id])
+  artwork      Artwork    @relation(fields: [artworkId], references: [id])
+
+  @@unique([exhibitionId, artworkId]) // composite unique key to prevent duplicates
+}
+
+model News {
+  id          BigInt   @id @default(autoincrement())
+  title       String
+  content     String
+  publishedAt DateTime
+  // No relations for the MVP
 }
