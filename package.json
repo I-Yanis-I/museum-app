@@ -8,9 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push"
   },
   "repository": {
     "type": "git",
@@ -30,7 +31,10 @@
   },
   "homepage": "https://github.com/I-Yanis-I/museum-api#readme",
   "dependencies": {
-    "@prisma/client": "^5.19.1",
+    "@prisma/client": "^5.22.0",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.90.1",
     "next": "^14.2.16",
     "prisma": "^5.19.1",
     "react": "^18.3.1",
