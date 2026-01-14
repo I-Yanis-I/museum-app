@@ -1,5 +1,7 @@
 # Museum App
 
+![CI](https://github.com/I-Yanis-I/museum-api/actions/workflows/ci.yml/badge.svg)
+
 A museum website built with Next.js, Prisma, and Supabase.
 
 ## Features

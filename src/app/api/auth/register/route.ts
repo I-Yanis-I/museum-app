@@ -6,9 +6,18 @@ export async function POST(request: Request) {
   try {
     const { email, password, firstName, lastName } = await request.json()
 
-    if (!email || !password || !firstName || !lastName) {
+    // Check if required fields are present
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Tous les champs sont requis' },
+        { error: 'Email and password are required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'Password must be at least 6 characters long' },
         { status: 400 }
       )
     }
@@ -20,24 +29,34 @@ export async function POST(request: Request) {
     })
 
     if (authError) {
+      // Check if user already exists
+      if (authError.message.toLowerCase().includes('already registered') || 
+          authError.message.toLowerCase().includes('already exists')) {
+        return NextResponse.json(
+          { error: 'This email is already in use' },
+          { status: 409 }
+        )
+      }
+      
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
       )
     }
 
+    // Create user in database with optional firstName/lastName
     const user = await prisma.user.create({
       data: {
         id: authData.user!.id,
         email,
-        firstName,
-        lastName,
+        firstName: firstName || '',
+        lastName: lastName || '',
       },
     })
 
     return NextResponse.json(
       { 
-        message: 'Utilisateur créé avec succès',
+        message: 'Registration successful',
         user: {
           id: user.id.toString(),
           email: user.email,
@@ -48,9 +67,9 @@ export async function POST(request: Request) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Erreur register:', error)
+    console.error('Register error:', error)
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: 'Server error' },
       { status: 500 }
     )
   }
