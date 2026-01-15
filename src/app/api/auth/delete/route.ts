@@ -10,42 +10,51 @@ export async function DELETE() {
 
     if (error || !user) {
       return NextResponse.json(
-        { error: 'Non authentifié' },
+        { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
     const userId = user.id
 
+    // Delete user from database first
     await prisma.user.delete({
       where: {
         id: userId,
       },
     })
 
+    // Create admin client to delete auth user
     const supabaseAdmin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    // Delete user from Supabase auth
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
-      user.id
+      userId
     )
 
     if (deleteError) {
-      console.error('Erreur suppression Supabase:', deleteError)
+      console.error('Supabase deletion error:', deleteError)
+      // If Supabase fails, return error (DB already deleted - can't rollback easily)
+      return NextResponse.json(
+        { error: 'Failed to delete user authentication' },
+        { status: 500 }
+      )
     }
 
+    // Sign out current session
     await supabase.auth.signOut()
 
     return NextResponse.json(
-      { message: 'Compte supprimé avec succès' },
+      { message: 'Account successfully deleted' },
       { status: 200 }
     )
   } catch (error) {
-    console.error('Erreur delete:', error)
+    console.error('Delete error:', error)
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: 'Server error' },
       { status: 500 }
     )
   }

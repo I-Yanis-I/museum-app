@@ -9,7 +9,7 @@ export async function GET() {
 
     if (error || !user) {
       return NextResponse.json(
-        { error: 'Non authentifié' },
+        { error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -29,7 +29,7 @@ export async function GET() {
 
     if (!userProfile) {
       return NextResponse.json(
-        { error: 'Profil introuvable' },
+        { error: 'Profile not found' },
         { status: 404 }
       )
     }
@@ -47,9 +47,9 @@ export async function GET() {
       { status: 200 }
     )
   } catch (error) {
-    console.error('Erreur profile:', error)
+    console.error('Profile error:', error)
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: 'Server error' },
       { status: 500 }
     )
   }

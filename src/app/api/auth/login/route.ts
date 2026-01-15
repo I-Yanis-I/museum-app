@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email et mot de passe requis' },
+        { error: 'Email and password are required' },
         { status: 400 }
       )
     }
@@ -20,14 +20,14 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json(
-        { error: 'Identifiants invalides' },
+        { error: 'Invalid credentials' },
         { status: 401 }
       )
     }
 
     return NextResponse.json(
       {
-        message: 'Connexion réussie',
+        message: 'Login successful',
         user: {
           id: data.user.id,
           email: data.user.email,
@@ -40,9 +40,9 @@ export async function POST(request: Request) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('Erreur login:', error)
+    console.error('Login error:', error)
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: 'Server error' },
       { status: 500 }
     )
   }
