@@ -6,53 +6,46 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 export async function DELETE() {
   try {
     const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
-
-    if (error || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const userId = user.id
 
-    // Delete user from database first
-    await prisma.user.delete({
-      where: {
-        id: userId,
-      },
-    })
-
-    // Create admin client to delete auth user
     const supabaseAdmin = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-
-    // Delete user from Supabase auth
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
-      userId
-    )
-
-    if (deleteError) {
-      console.error('Supabase deletion error:', deleteError)
-      // If Supabase fails, return error (DB already deleted - can't rollback easily)
+    
+    const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+    
+    if (deleteAuthError) {
+      console.error('Auth deletion failed:', deleteAuthError)
       return NextResponse.json(
-        { error: 'Failed to delete user authentication' },
+        { error: 'Failed to delete authentication' },
         { status: 500 }
       )
     }
 
-    // Sign out current session
+    try {
+      await prisma.user.delete({ where: { id: userId } })
+    } catch (dbError) {
+      console.error('DB deletion failed:', dbError)
+    
+      return NextResponse.json(
+        { error: 'Failed to delete user data' },
+        { status: 500 }
+      )
+    }
+
     await supabase.auth.signOut()
 
-    return NextResponse.json(
-      { message: 'Account successfully deleted' },
-      { status: 200 }
-    )
+    return new NextResponse(null, { status: 204 })
+    
   } catch (error) {
-    console.error('Delete error:', error)
+    console.error('Unexpected deletion error:', error)
     return NextResponse.json(
       { error: 'Server error' },
       { status: 500 }
