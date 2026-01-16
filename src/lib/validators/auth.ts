@@ -1,20 +1,11 @@
-/**
- * Zod validation schemas for authentication
- */
-
 import { z } from 'zod'
 
 // ==================== REGISTER ====================
-
-/**
- * Validation schema for registration
- */
 export const RegisterSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Invalid email format')
     .min(5, 'Email must be at least 5 characters')
+    .email('Invalid email format')
     .max(255, 'Email must be less than 255 characters')
     .toLowerCase()
     .trim(),
@@ -44,14 +35,10 @@ export const RegisterSchema = z.object({
     .trim(),
 })
 
-// Infer TypeScript type from Zod schema
 export type RegisterInput = z.infer<typeof RegisterSchema>
 
 // ==================== LOGIN ====================
 
-/**
- * Validation schema for login
- */
 export const LoginSchema = z.object({
   email: z
     .string()
@@ -65,14 +52,10 @@ export const LoginSchema = z.object({
     .min(1, 'Password is required'),
 })
 
-// Infer TypeScript type from Zod schema
 export type LoginInput = z.infer<typeof LoginSchema>
 
 // ==================== PROFILE UPDATE ====================
 
-/**
- * Validation schema for profile updates (future use)
- */
 export const UpdateProfileSchema = z.object({
   firstName: z
     .string()
@@ -89,5 +72,4 @@ export const UpdateProfileSchema = z.object({
     .optional(),
 })
 
-// Infer TypeScript type from Zod schema
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>

@@ -1,48 +1,49 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { LoginSchema } from '@/lib/validators/auth'
+import { AuthService } from '@/lib/services/auth.service'
+import { ZodError } from 'zod'
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json()
+    // 1. Validate input
+    const body = await request.json()
+    const validatedData = LoginSchema.parse(body)
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      )
-    }
+    // 2. Delegate to service
+    const user = await AuthService.loginUser(validatedData)
 
-    const supabase = await createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      )
-    }
-
+    // 3. Format response
     return NextResponse.json(
       {
+        user: AuthService.excludePassword(user),
         message: 'Login successful',
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-        },
-        session: {
-          access_token: data.session?.access_token,
-          expires_at: data.session?.expires_at,
-        },
       },
       { status: 200 }
     )
   } catch (error) {
+    // Validation errors
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          errors: error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Business logic errors
+    if (error instanceof Error && error.message === 'INVALID_CREDENTIALS') {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      )
+    }
+
+    // Unknown errors
     console.error('Login error:', error)
     return NextResponse.json(
-      { error: 'Server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

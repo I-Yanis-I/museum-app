@@ -1,75 +1,49 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { RegisterSchema } from '@/lib/validators/auth'
+import { RegisterResponse, ErrorResponse } from '@/types/api/auth'
+import { AuthService } from '@/lib/services/auth.service'
+import { ZodError } from 'zod'
 
 export async function POST(request: Request) {
   try {
-    const { email, password, firstName, lastName } = await request.json()
+    // 1. Validate input
+    const body = await request.json()
+    const validatedData = RegisterSchema.parse(body)
 
-    // Check if required fields are present
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      )
+    // 2. Delegate to service
+    const user = await AuthService.registerUser(validatedData)
+
+    // 3. Format response
+    const response: RegisterResponse = {
+      user: AuthService.excludePassword(user),
+      message: 'Registration successful',
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters long' },
-        { status: 400 }
-      )
-    }
-
-    const supabase = await createClient()
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    if (authError) {
-      // Check if user already exists
-      if (authError.message.toLowerCase().includes('already registered') || 
-          authError.message.toLowerCase().includes('already exists')) {
-        return NextResponse.json(
-          { error: 'This email is already in use' },
-          { status: 409 }
-        )
-      }
-      
-      return NextResponse.json(
-        { error: authError.message },
-        { status: 400 }
-      )
-    }
-
-    // Create user in database with optional firstName/lastName
-    const user = await prisma.user.create({
-      data: {
-        id: authData.user!.id,
-        email,
-        firstName: firstName || '',
-        lastName: lastName || '',
-      },
-    })
-
-    return NextResponse.json(
-      { 
-        message: 'Registration successful',
-        user: {
-          id: user.id.toString(),
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-        }
-      },
-      { status: 201 }
-    )
+    return NextResponse.json(response, { status: 201 })
   } catch (error) {
+    // Validation errors
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          errors: error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Business logic errors
+    if (error instanceof Error && error.message === 'EMAIL_ALREADY_EXISTS') {
+      const errorResponse: ErrorResponse = {
+        error: 'This email is already in use',
+      }
+      return NextResponse.json(errorResponse, { status: 409 })
+    }
+
+    // Unknown errors
     console.error('Register error:', error)
     return NextResponse.json(
-      { error: 'Server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
