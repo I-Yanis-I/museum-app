@@ -1,55 +1,50 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { UserService } from '@/lib/services/user.service'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    // hardcoded userId in waiting for JWT/session
+    const userId = 'de0766ca-ebf4-402a-9535-ee7930a2cff2' // ID of john.doe@museum.com
 
-    if (error || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const userProfile = await prisma.user.findUnique({
-      where: {
-        id: user.id,
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-      },
-    })
-
-    if (!userProfile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
-    }
+    const user = await UserService.getProfile(userId)
 
     return NextResponse.json(
       {
-        user: {
-          id: userProfile.id.toString(),
-          email: userProfile.email,
-          firstName: userProfile.firstName,
-          lastName: userProfile.lastName,
-          createdAt: userProfile.createdAt,
-        },
+        user: UserService.excludePassword(user),
       },
       { status: 200 }
     )
   } catch (error) {
+    if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     console.error('Profile error:', error)
     return NextResponse.json(
-      { error: 'Server error' },
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const userId = 'de0766ca-ebf4-402a-9535-ee7930a2cff2' // Temporary
+    const body = await request.json()
+
+    const user = await UserService.updateProfile(userId, body)
+
+    return NextResponse.json(
+      {
+        user: UserService.excludePassword(user),
+        message: 'Profile updated successfully',
+      },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('Update profile error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

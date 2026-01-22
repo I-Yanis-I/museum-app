@@ -1,60 +1,24 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { UserService } from '@/lib/services/user.service'
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const userId = 'b26047c1-1e46-4fad-b4dc-ac9f9fee69b8' // Temporary
 
-    if (error || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const userId = user.id
-
-    // Delete user from database first
-    await prisma.user.delete({
-      where: {
-        id: userId,
-      },
-    })
-
-    // Create admin client to delete auth user
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    // Delete user from Supabase auth
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
-      userId
-    )
-
-    if (deleteError) {
-      console.error('Supabase deletion error:', deleteError)
-      // If Supabase fails, return error (DB already deleted - can't rollback easily)
-      return NextResponse.json(
-        { error: 'Failed to delete user authentication' },
-        { status: 500 }
-      )
-    }
-
-    // Sign out current session
-    await supabase.auth.signOut()
+    await UserService.deleteAccount(userId)
 
     return NextResponse.json(
-      { message: 'Account successfully deleted' },
+      { message: 'Account deleted successfully' },
       { status: 200 }
     )
   } catch (error) {
-    console.error('Delete error:', error)
+    if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    console.error('Delete account error:', error)
     return NextResponse.json(
-      { error: 'Server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

@@ -26,14 +26,21 @@ enum BookingStatus {
   PENDING
 }
 
+enum UserRole {
+  VISITOR
+  STAFF
+  ADMIN
+}
+
 // ==================== USER MANAGEMENT ====================
 
 model User {
   id        String   @id @default(uuid())
   email     String   @unique @db.VarChar(255)
-  // password field removed - authentication handled by Supabase Auth (auth.users table)
+  password  String?   
   firstName String   @db.VarChar(100)
   lastName  String   @db.VarChar(100)
+  role      UserRole @default(VISITOR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

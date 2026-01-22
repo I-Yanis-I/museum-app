@@ -1,162 +1,100 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GET } from '@/app/api/auth/profile/route'
+import { GET, PATCH } from '@/app/api/auth/profile/route'
+import { UserService } from '@/lib/services/user.service'
 
-// Create mock function for Supabase getUser
-const mockGetUser = vi.fn()
-
-// Mock the entire Supabase server module
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(() => ({
-    auth: {
-      getUser: mockGetUser,
-    },
-  })),
-}))
-
-// Mock Prisma client - Create the mock directly in factory
-vi.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn(), // Create the mock directly here
-    },
+// Mock UserService
+vi.mock('@/lib/services/user.service', () => ({
+  UserService: {
+    getProfile: vi.fn(),
+    updateProfile: vi.fn(),
+    excludePassword: vi.fn((user) => {
+      const { password, ...rest } = user
+      return rest
+    }),
   },
 }))
 
-// Import the mocked prisma to access the mock function
-import { prisma } from '@/lib/prisma'
-
 describe('GET /api/auth/profile', () => {
-  // Reset all mocks before each test
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('should return 401 if user is not authenticated (error)', async () => {
-    // Arrange: Mock Supabase to return authentication error
-    mockGetUser.mockResolvedValueOnce({
-      data: { user: null },
-      error: { message: 'Invalid token' }
-    })
-
-    // Act: Call the route handler
-    const response = await GET()
-
-    // Assert: Check status and error message
-    expect(response.status).toBe(401)
-    const data = await response.json()
-    expect(data).toEqual({ error: 'Unauthorized' })
-    
-    // Verify Prisma was NOT called (early return)
-    expect(prisma.user.findUnique).not.toHaveBeenCalled()
-  })
-
-  it('should return 401 if user is null', async () => {
-    // Arrange: Mock Supabase to return null user
-    mockGetUser.mockResolvedValueOnce({
-      data: { user: null },
-      error: null
-    })
-
-    // Act: Call the route handler
-    const response = await GET()
-
-    // Assert: Check status and error message
-    expect(response.status).toBe(401)
-    const data = await response.json()
-    expect(data).toEqual({ error: 'Unauthorized' })
-    
-    // Verify Prisma was NOT called
-    expect(prisma.user.findUnique).not.toHaveBeenCalled()
-  })
-
-  it('should return 404 if user profile not found in database', async () => {
-    // Arrange: Mock Supabase to return valid user
-    mockGetUser.mockResolvedValueOnce({
-      data: { 
-        user: { 
-          id: '123', 
-          email: 'user@example.com' 
-        } 
-      },
-      error: null
-    })
-
-    // Mock Prisma to return null (user not found in DB)
-    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(null)
-
-    // Act: Call the route handler
-    const response = await GET()
-
-    // Assert: Check status and error message
-    expect(response.status).toBe(404)
-    const data = await response.json()
-    expect(data).toEqual({ error: 'Profile not found' })
-    
-    // Verify Prisma was called with correct user ID
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { id: '123' },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-      },
-    })
-  })
-
-  it('should return 200 with user profile if authenticated', async () => {
-    // Arrange: Mock Supabase to return valid user
-    mockGetUser.mockResolvedValueOnce({
-      data: { 
-        user: { 
-          id: '123', 
-          email: 'user@example.com' 
-        } 
-      },
-      error: null
-    })
-
-    // Mock Prisma to return user profile
-    const mockDate = new Date('2024-01-01')
-    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
-      id: '123',
-      email: 'user@example.com',
+  it('should return 200 and user profile', async () => {
+    const mockUser = {
+      id: 'de0766ca-ebf4-402a-9535-ee7930a2cff2',
+      email: 'test@example.com',
       firstName: 'John',
       lastName: 'Doe',
-      createdAt: mockDate,
-      updatedAt: mockDate,
-    })
+      password: 'hashedpassword',
+      role: 'VISITOR' as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
 
-    // Act: Call the route handler
-    const response = await GET()
+    vi.mocked(UserService.getProfile).mockResolvedValueOnce(mockUser)
 
-    // Assert: Check status and user data
+    const response = await GET({} as Request)
+
     expect(response.status).toBe(200)
     const data = await response.json()
-    expect(data).toEqual({
-      user: {
-        id: '123',
-        email: 'user@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-        createdAt: mockDate.toISOString(), // ← FIX: Convert Date to ISO string
-      },
+    expect(data.user).toEqual({
+      id: mockUser.id,
+      email: mockUser.email,
+      firstName: mockUser.firstName,
+      lastName: mockUser.lastName,
+      role: mockUser.role,
+      createdAt: mockUser.createdAt.toISOString(),
+      updatedAt: mockUser.updatedAt.toISOString(),
     })
-    
-    // Verify Supabase getUser was called
-    expect(mockGetUser).toHaveBeenCalled()
-    
-    // Verify Prisma findUnique was called with correct parameters
-    expect(prisma.user.findUnique).toHaveBeenCalledWith({
-      where: { id: '123' },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-      },
+  })
+
+  it('should return 404 if user not found', async () => {
+    vi.mocked(UserService.getProfile).mockRejectedValueOnce(
+      new Error('USER_NOT_FOUND')
+    )
+
+    const response = await GET({} as Request)
+
+    expect(response.status).toBe(404)
+    const data = await response.json()
+    expect(data).toEqual({ error: 'User not found' })
+  })
+})
+
+describe('PATCH /api/auth/profile', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should return 200 and updated user', async () => {
+    const mockUser = {
+      id: 'de0766ca-ebf4-402a-9535-ee7930a2cff2',
+      email: 'test@example.com',
+      firstName: 'Johnny',
+      lastName: 'Doey',
+      password: 'hashedpassword',
+      role: 'VISITOR' as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+
+    vi.mocked(UserService.updateProfile).mockResolvedValueOnce(mockUser)
+
+    const request = new Request('http://localhost:3000/api/auth/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: 'Johnny',
+        lastName: 'Doey',
+      }),
     })
+
+    const response = await PATCH(request)
+
+    expect(response.status).toBe(200)
+    const data = await response.json()
+    expect(data.message).toBe('Profile updated successfully')
+    expect(data.user.firstName).toBe('Johnny')
+    expect(data.user.lastName).toBe('Doey')
   })
 })
