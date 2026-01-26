@@ -46,3 +46,6 @@ next-env.d.ts
 # IDE
 .vscode/
 .idea/
+
+# documentation (personal notes)
+/docs/

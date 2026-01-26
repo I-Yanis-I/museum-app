@@ -2,6 +2,14 @@ import { prisma } from '@/lib/prisma'
 import { User } from '@prisma/client'
 
 export class UserService {
+  static async findById(userId: string): Promise<User | null> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+
+    return user
+  }
+
   static async getProfile(userId: string): Promise<User> {
     const user = await prisma.user.findUnique({
       where: { id: userId },

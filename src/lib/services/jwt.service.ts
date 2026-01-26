@@ -1,14 +1,6 @@
 import jwt from 'jsonwebtoken'
-
-export interface AccessTokenPayload {
-  userId: string
-  email: string
-  role: string
-}
-
-export interface RefreshTokenPayload {
-  userId: string
-}
+import { jwtVerify } from 'jose'
+import { RefreshTokenPayload, AccessTokenPayload } from '@/types/jwt'
 
 export class JWTService {
   private static readonly ACCESS_TOKEN_EXPIRY = '15m' 
@@ -61,26 +53,27 @@ export class JWTService {
     }
   }
 
-  static verifyRefreshToken(token: string): RefreshTokenPayload {
+  static async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
     if (!process.env.JWT_REFRESH_SECRET) {
       throw new Error('JWT_REFRESH_SECRET is not defined in environment variables')
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET, {
+      const secret = new TextEncoder().encode(process.env.JWT_REFRESH_SECRET)
+      const { payload } = await jwtVerify(token, secret, {
         issuer: 'museum-app',
         audience: 'museum-api',
-      }) as RefreshTokenPayload
-
-      return decoded
-    } catch (error) {
-      if (error instanceof jwt.TokenExpiredError) {
-        throw new Error('REFRESH_TOKEN_EXPIRED')
-      }
-      if (error instanceof jwt.JsonWebTokenError) {
+      })
+      
+      if (!payload.userId || typeof payload.userId !== 'string') {
         throw new Error('INVALID_REFRESH_TOKEN')
       }
-      throw error
+      
+      return {
+        userId: payload.userId as string,
+      }
+    } catch (error) {
+      throw new Error('INVALID_REFRESH_TOKEN')
     }
   }
 
