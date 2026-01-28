@@ -43,11 +43,11 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link href="/auth/login">
-              <Button variant="secondary">Connexion</Button>
+            <Link href="/login">
+              <Button variant="secondary">Login</Button>
             </Link>
-            <Link href="/auth/register">
-              <Button variant="primary">Inscription</Button>
+            <Link href="/register">
+              <Button variant="primary">Register</Button>
             </Link>
           </div>
         </div>

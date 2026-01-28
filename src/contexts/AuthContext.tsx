@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch('/api/auth/profile', {
         method: 'GET',
-        credentials: 'include', 
+        credentials: 'include', // without, the backend won't receive cookies
       })
 
       if (response.ok) {
