@@ -1,25 +1,19 @@
 'use client'
 
-interface InputProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'date'
-  placeholder?: string
-  value?: string
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
-  required?: boolean
-  disabled?: boolean
+import { InputHTMLAttributes } from 'react'
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
 }
 
 export default function Input({
-  type = 'text',
-  placeholder,
-  value,
-  onChange,
+  label,
+  error,
   required = false,
   disabled = false,
-  label,
-  error
+  className = '',
+  ...props  
 }: InputProps) {
   return (
     <div className="w-full">
@@ -31,10 +25,6 @@ export default function Input({
       )}
       
       <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
         required={required}
         disabled={disabled}
         className={`
@@ -42,7 +32,9 @@ export default function Input({
           focus:outline-none focus:ring-2 focus:ring-blue-500
           disabled:bg-gray-100 disabled:cursor-not-allowed
           ${error ? 'border-red-500' : 'border-gray-300'}
+          ${className}
         `}
+        {...props} 
       />
       
       {error && (
