@@ -23,7 +23,6 @@ export function Header() {
             Museum App
           </Link>
           <div className="flex items-center gap-4">
-            {/* 3. Conditional rendering */}
             {isLoading && (
               <div className="h-10 w-32 bg-gray-200 animate-pulse rounded" />
             )}
@@ -41,9 +40,12 @@ export function Header() {
 
             {!isLoading && isAuthenticated && user && (
               <div className="flex items-center gap-4">
-                <span className="text-gray-700">
-                  Hello, <span className="font-semibold">{user.firstName}</span>
-                </span>
+                {/* 🆕 Lien vers le profil */}
+                <Link href="/profile">
+                  <span className="text-gray-700 hover:text-gray-900 transition-colors cursor-pointer">
+                    Hello, <span className="font-semibold">{user.firstName}</span>
+                  </span>
+                </Link>
                 <Button variant="ghost" onClick={handleLogout}>
                   Logout
                 </Button>
